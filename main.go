@@ -18,19 +18,20 @@ type Perishable struct {
 	Location string
 }
 
+type PerishablePost struct {
+	Id 		 string
+	Type     string
+	Date     string
+	Count    string
+	Location string
+}
+
 type PerishableType struct {
 	gorm.Model
 	Name           string
 	IsFresh        bool
 	AdditionalTime int
-	TimeUnit	   string
-}
-
-type PerishableTypeString struct {
-	Name           string
-	IsFresh        bool
-	AdditionalTime string
-	TimeUnit	   string
+	TimeUnit       string
 }
 
 type PerishableTypePost struct {
@@ -65,38 +66,43 @@ func main() {
 
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/addType", addTypeHandler)
+	http.HandleFunc("/addPerish", addPerishableHandler)
 	http.HandleFunc("/addTypePost", addTypePostHandler)
+	http.HandleFunc("/addPerishPost", addPerishablePostHandler)
 	http.HandleFunc("/manageType", manageTypeHandler)
 
 	http.ListenAndServe(":8181", nil)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	var perishableTypes []PerishableType
-	var out []PerishableTypeString
+	var perishables []Perishable
+	var out []PerishablePost
 	//db.Lock()
-	db.Find(&perishableTypes)
-	for _, pt := range perishableTypes {
-		out = append(out, PerishableTypeString{
-			Name:           pt.Name,
-			IsFresh:        pt.IsFresh,
-			AdditionalTime: strconv.Itoa(pt.AdditionalTime),
-			TimeUnit:       pt.TimeUnit,
+	db.Find(&perishables)
+
+	for _, p := range perishables {
+		out = append(out, PerishablePost{
+			Id:				strconv.Itoa(int(p.ID)),
+			Type:			p.Type.Name,
+			Date:			p.Date.String(),
+			Count:			strconv.Itoa(p.Count),
+			Location:		p.Location,
 		})
 	}
+
 	//db.Unlock()
 	tpl.ExecuteTemplate(w, "index.gohtml", out)
 }
 
 func manageTypeHandler(w http.ResponseWriter, r *http.Request) {
 	var perishableTypes []PerishableType
-	var out []PerishableTypeString
+	var out []PerishableTypePost
 	//db.Lock()
 	db.Find(&perishableTypes)
 	for _, pt := range perishableTypes {
-		out = append(out, PerishableTypeString{
+		out = append(out, PerishableTypePost{
 			Name:           pt.Name,
-			IsFresh:        pt.IsFresh,
+			IsFresh:        strconv.FormatBool(pt.IsFresh),
 			AdditionalTime: strconv.Itoa(pt.AdditionalTime),
 			TimeUnit:       pt.TimeUnit,
 		})
@@ -116,6 +122,39 @@ func addTypeHandler(w http.ResponseWriter, r *http.Request) {
 	tpl.ExecuteTemplate(w, "add.gohtml", out)
 }
 
+func addPerishableHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	var types []PerishableType
+	db.Find(&types)
+
+	out := struct {
+		Perishable PerishablePost
+		Types 		[]string
+	}{}
+
+	for _, t := range types {
+		out.Types = append(out.Types, t.Name)
+	}
+
+	var perish Perishable
+	if r.FormValue("id") != "" {
+		db.Where("id = ?", r.FormValue("id")).First(&perish)
+		out.Perishable = PerishablePost{
+			Id:       strconv.Itoa(int(perish.ID)),
+			Type:     perish.Type.Name,
+			Date:     perish.Date.String(),
+			Count:    strconv.Itoa(perish.Count),
+			Location: perish.Location,
+		}
+	} else {
+		out.Perishable = PerishablePost{
+			Id: 	  "-1",
+		}
+	}
+
+	tpl.ExecuteTemplate(w, "addPerishable.gohtml", out)
+}
+
 func addTypePostHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	isFresh, _ := strconv.ParseBool(r.FormValue("isFresh"))
@@ -127,13 +166,13 @@ func addTypePostHandler(w http.ResponseWriter, r *http.Request) {
 	timeUnit := r.FormValue("timeUnit")
 
 	var t PerishableType
-	if  db.Where("name = ?", r.FormValue("name")).First(&t).RecordNotFound() {
+	if db.Where("name = ?", r.FormValue("name")).First(&t).RecordNotFound() {
 		t = PerishableType{
 			Model:          gorm.Model{},
 			Name:           r.FormValue("name"),
 			IsFresh:        isFresh,
 			AdditionalTime: addedTimeInt,
-			TimeUnit:	    timeUnit,
+			TimeUnit:       timeUnit,
 		}
 	} else {
 		t.IsFresh = isFresh
@@ -147,4 +186,34 @@ func addTypePostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/manageType", http.StatusFound)
+}
+
+func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	date, _ := time.Parse("", r.FormValue("date"))
+	count, _ := strconv.Atoi(r.FormValue("count"))
+	// submit id via submit button value
+	var p Perishable
+	var t PerishableType
+	if db.Where("id = ?", r.FormValue("id")).First(&p).RecordNotFound() {
+		db.Where("name = ?", r.FormValue("type")).First(&t)
+		p = Perishable{
+			Model:    gorm.Model{},
+			Type:     t,
+			Date:     date,
+			Count:    count,
+			Location: r.FormValue("location"),
+		}
+	} else {
+		p.Date = date
+		p.Count = count
+		p.Location = r.FormValue("location")
+	}
+	db.Save(&p)
+
+	if r.FormValue("submit") == "add" {
+		http.Redirect(w, r, "/addPerish", http.StatusFound)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }

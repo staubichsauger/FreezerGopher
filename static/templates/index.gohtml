@@ -67,17 +67,21 @@
                     Perishables
                 </div>
                 <div class="card-body">
-                    <table>
+                    <table style="width:100%" border="2px solid black">
                         <tr>
-                            <th>Name</th>
-                            <th>IsFresh</th>
-                            <th>AdditionalTime</th>
+                            <th>Type</th>
+                            <th>Count</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Edit Link</th>
                         </tr>
                     {{range .}}
                         <tr>
-                            <td>{{.Name}}</td>
-                            <td>{{.IsFresh}}</td>
-                            <td>{{.AdditionalTime}}</td>
+                            <td>{{.Type}}</td>
+                            <td>{{.Count}}</td>
+                            <td>{{.Date}}</td>
+                            <td>{{.Location}}</td>
+                            <td><a href="/addPerish?id={{.Id}}">Edit</a></td>
                         </tr>
                     {{end}}
                     </table>

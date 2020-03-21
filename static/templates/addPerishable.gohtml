@@ -64,61 +64,45 @@
             <div class="card mb-3">
                 <div class="card-header">
                     <i class="fas fa-sliders-h"></i>
-                    Add/Update Type of Perishable
+                    Add/Update Perishable
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="/addTypePost">
+                    <form method="POST" action="/addPerishPost">
                         <table border="2px solid black" cellpadding="2px">
 
                             <tr>
-                                <td><label for="name">Name:</label></td>
-                                <td><input type="text" id="name" name="name" value="{{.Name}}"></td>
-                                <td></td>
+                                <td><label for="type">Type:</label></td>
+                                <td>
+                                <select id="type" name="type">
+                                    {{range .Types}}
+                                        {{if (eq $.Perishable.Type .)}}
+                                            <option selected value="{{.}}">{{.}}</option>
+                                        {{else}}
+                                            <option value="{{.}}">{{.}}</option>
+                                        {{end}}
+                                    {{end}}
+                                </select>
+                                </td>
                             </tr>
 
                             <tr>
-                                <td><label for="isFresh">IsFresh:</label></td>
-                                <td>
-                                    <select id="isFresh" name="isFresh">
-                                        {{if (eq .IsFresh "true")}}
-                                            <option selected value="true">true</option>
-                                            <option value="false">false</option>
-                                        {{else}}
-                                            <option value="true">true</option>
-                                            <option selected value="false">false</option>
-                                        {{end}}
-                                    </select>
-                                </td>
-                                <td>freshly bought: true, pre-packaged with <i>best by</i> date: false</td>
+                                <td><label for="count">Count:</label></td>
+                                <td><input type="number" id="count" name="count" value="{{.Perishable.Count}}"></td>
                             </tr>
 
                             <tr>
-                                <td><label for="addedTime">Additional Time:</label></td>
-                                <td>
-                                    <input type="number" id="addedTime" name="addedTime" value="{{.AdditionalTime}}">
-                                    <select id="timeUnit" name="timeUnit">
-                                        {{if (eq .TimeUnit "days")}}
-                                            <option selected value="days">days</option>
-                                        {{else}}
-                                            <option value="days">days</option>
-                                        {{end}}
-                                        {{if (eq .TimeUnit "weeks")}}
-                                            <option selected value="weeks">weeks</option>
-                                        {{else}}
-                                            <option value="weeks">weeks</option>
-                                        {{end}}
-                                        {{if (eq .TimeUnit "months")}}
-                                            <option selected value="months">months</option>
-                                        {{else}}
-                                            <option value="months">months</option>
-                                        {{end}}
-                                    </select>
-                                </td>
-                                <td>the time freezing adds to the normal <i>best by</i> date</td>
+                                <td><label for="date">Date:</label></td>
+                                <td><input type="date" id="date" name="date" value="{{.Perishable.Date}}"></td>
                             </tr>
+
+                            <tr>
+                                <td><label for="location">Location:</label></td>
+                                <td><input type="text" id="location" name="location" value="{{.Perishable.Location}}"></td>
+                            </tr>
+
                         </table>
                         <br>
-                        {{if or (eq .IsFresh "true") (eq .IsFresh "false")}}
+                        {{if (ne .Perishable.Id "-1")}}
                             <button type="submit" id="submit" name="submit" value="update">Update</button>
                         {{else}}
                             <button type="submit" id="submit" name="submit" value="add">Add</button>
