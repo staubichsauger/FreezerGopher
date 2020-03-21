@@ -12,7 +12,7 @@ import (
 
 type Perishable struct {
 	gorm.Model
-	Type     PerishableType
+	Type     PerishableType `gorm:"foreignkey:TypeID"`
 	Date     time.Time
 	Count    int
 	Location string
@@ -81,6 +81,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	db.Find(&perishables)
 
 	for _, p := range perishables {
+		logrus.Info(p.Type.Name)
 		out = append(out, PerishablePost{
 			Id:				strconv.Itoa(int(p.ID)),
 			Type:			p.Type.Name,
@@ -195,7 +196,7 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 	// submit id via submit button value
 	var p Perishable
 	var t PerishableType
-	if db.Where("id = ?", r.FormValue("id")).First(&p).RecordNotFound() {
+	if db.Where("id = ?", r.FormValue("submit")).First(&p).RecordNotFound() {
 		db.Where("name = ?", r.FormValue("type")).First(&t)
 		p = Perishable{
 			Model:    gorm.Model{},

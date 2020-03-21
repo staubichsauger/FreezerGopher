@@ -103,7 +103,7 @@
                         </table>
                         <br>
                         {{if (ne .Perishable.Id "-1")}}
-                            <button type="submit" id="submit" name="submit" value="update">Update</button>
+                            <button type="submit" id="submit" name="submit" value="{{.Perishable.Id}}">Update</button>
                         {{else}}
                             <button type="submit" id="submit" name="submit" value="add">Add</button>
                         {{end}}
