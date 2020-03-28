@@ -73,6 +73,7 @@
                             <th>Count</th>
                             <th>Use By</th>
                             <th>Location</th>
+                            <th>Comment</th>
                             <th>Edit Link</th>
                         </tr>
                     {{range .P}}
@@ -81,6 +82,7 @@
                             <td>{{.Count}}</td>
                             <td>{{.Date}}</td>
                             <td>{{.Location}}</td>
+                            <td>{{.Comment}}</td>
                             <td><a href="{{$.UrlPrefix}}/addPerish?id={{.Id}}">Edit</a></td>
                         </tr>
                     {{end}}

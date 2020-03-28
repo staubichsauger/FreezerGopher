@@ -20,6 +20,7 @@ type Perishable struct {
 	Date     time.Time
 	Count    int
 	Location string
+	Comment  string
 }
 
 type PerishablePost struct {
@@ -28,6 +29,7 @@ type PerishablePost struct {
 	Date     string
 	Count    string
 	Location string
+	Comment  string
 }
 
 type PerishableType struct {
@@ -139,6 +141,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 			Date:			p.Date.Format("2006-01-02"),
 			Count:			strconv.Itoa(p.Count),
 			Location:		p.Location,
+			Comment:		p.Comment,
 		})
 	}
 
@@ -214,6 +217,7 @@ func addPerishableHandler(w http.ResponseWriter, r *http.Request) {
 			Date:     perish.Date.Format("2006-01-02"),
 			Count:    strconv.Itoa(perish.Count),
 			Location: perish.Location,
+			Comment:  perish.Comment,
 		}
 	} else {
 		out.Perishable = PerishablePost{
@@ -274,11 +278,12 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 			Date:     date,
 			Count:    count,
 			Location: r.FormValue("location"),
+			Comment:  r.FormValue("comment"),
 		}
 	} else {
-		p.Date = date
 		p.Count = count
 		p.Location = r.FormValue("location")
+		p.Comment = r.FormValue("comment")
 	}
 	if p.Count > 0 {
 		db.Save(&p)

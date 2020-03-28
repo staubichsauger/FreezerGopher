@@ -97,12 +97,21 @@
 
                             <tr>
                                 <td><label for="date">Date:</label></td>
-                                <td><input type="date" id="date" name="date" value="{{.Perishable.Date}}"></td>
+                                {{if (ne .Perishable.Id "-1")}}
+                                    <td><input type="date" id="date" name="date" value="{{.Perishable.Date}}" disabled></td>
+                                {{else}}
+                                    <td><input type="date" id="date" name="date" value="{{.Perishable.Date}}"></td>
+                                {{end}}
                             </tr>
 
                             <tr>
                                 <td><label for="location">Location:</label></td>
                                 <td><input type="text" id="location" name="location" value="{{.Perishable.Location}}"></td>
+                            </tr>
+
+                            <tr>
+                                <td><label for="comment">Comment:</label></td>
+                                <td><input type="text" id="comment" name="comment" value="{{.Perishable.Comment}}"></td>
                             </tr>
 
                         </table>
