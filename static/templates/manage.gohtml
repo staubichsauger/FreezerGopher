@@ -71,7 +71,7 @@
                         <input type="submit" value="Add New Type">
                     </form>
                     <br>
-                    <table style="width:100%" border="2px solid black">
+                    <div style="overflow-x:auto;"><table style="width:100%" border="2px solid black">
                         <tr>
                             <th>Name</th>
                             <th>IsFresh</th>
@@ -86,7 +86,7 @@
                             <td><a href="{{$.UrlPrefix}}/addType?name={{.Name}}&isFresh={{.IsFresh}}&addedTime={{.AdditionalTime}}&timeUnit={{.TimeUnit}}">Edit</a></td>
                         </tr>
                     {{end}}
-                    </table>
+                    </table></div>
                 </div>
             </div>
 
