@@ -177,11 +177,11 @@ body.fixed-nav.sidebar-toggled #content-wrapper {
 }
 
 .sidebar.toggled {
-  width: 0 !important;
+  /*width: 0 !important;*/
   overflow: hidden;
 }
 
-@media (min-width: 768px) {
+/*@media (min-width: 768px) {
   .sidebar {
     width: 225px !important;
   }
@@ -234,7 +234,7 @@ body.fixed-nav.sidebar-toggled #content-wrapper {
   .sidebar.toggled .nav-item.dropdown .dropdown-toggle::after {
     display: none;
   }
-}
+}*/
 
 .sidebar.fixed-top {
   top: 56px;
