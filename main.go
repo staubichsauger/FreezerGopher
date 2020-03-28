@@ -88,7 +88,7 @@ func main() {
 	db.AutoMigrate(&PerishableType{}, &Perishable{})
 
 	vendor := http.FileServer(http.Dir("static/vendor/"))
-	http.Handle("/vendor/", http.StripPrefix("/vendor/", vendor))
+	http.Handle(urlPrefix + "/vendor/", http.StripPrefix(urlPrefix + "/vendor/", vendor))
 
 	http.HandleFunc(urlPrefix + "/", indexHandler)
 	http.HandleFunc(urlPrefix + "/addType", addTypeHandler)
