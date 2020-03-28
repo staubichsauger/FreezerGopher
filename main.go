@@ -6,13 +6,15 @@ import (
 	"github.com/sirupsen/logrus"
 	"html/template"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 )
 
 type Perishable struct {
 	gorm.Model
-	Type     PerishableType `gorm:"foreignkey:TypeID"`
+	Type     *PerishableType //`gorm:"foreignkey:perishable_types_id"`
+	TypeId   int			`sql:"type:integer REFERENCES perishable_types(id)"`
 	Date     time.Time
 	Count    int
 	Location string
@@ -58,8 +60,13 @@ func init() {
 func main() {
 	defer db.Close()
 
-	db.AutoMigrate(&PerishableType{})
-	db.AutoMigrate(&Perishable{})
+	db.Exec("PRAGMA foreign_keys = ON")
+	//db.LogMode(true)
+	/*db.Exec(`CREATE TABLE IF NOT EXISTS "perishable_types" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"name" varchar(255),"is_fresh" bool,"additional_time" integer,"time_unit" varchar(255) );
+				 CREATE INDEX idx_perishable_types_deleted_at ON "perishable_types"(deleted_at) ;
+				 CREATE TABLE IF NOT EXISTS "perishables" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"date" datetime,"count" integer,"location" varchar(255),perishable_types_id integer NOT NULL,FOREIGN KEY(perishable_types_id) REFERENCES perishable_types(id));
+				 CREATE INDEX idx_perishables_deleted_at ON "perishables"(deleted_at) ;`)*/
+	db.AutoMigrate(&PerishableType{}, &Perishable{})
 
 	vendor := http.FileServer(http.Dir("static/vendor/"))
 	http.Handle("/vendor/", http.StripPrefix("/vendor/", vendor))
@@ -80,8 +87,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	//db.Lock()
 	db.Find(&perishables)
 
+	sort.Slice(perishables, func(i, j int) bool {
+		return perishables[i].Date.Before(perishables[j].Date)
+	})
+
 	for _, p := range perishables {
-		logrus.Info(p.Type.Name)
+		var t PerishableType
+		db.Where("id = ?", p.TypeId).First(&t)
+		p.Type = &t
 		out = append(out, PerishablePost{
 			Id:				strconv.Itoa(int(p.ID)),
 			Type:			p.Type.Name,
@@ -140,10 +153,13 @@ func addPerishableHandler(w http.ResponseWriter, r *http.Request) {
 	var perish Perishable
 	if r.FormValue("id") != "" {
 		db.Where("id = ?", r.FormValue("id")).First(&perish)
+		var t PerishableType
+		db.Where("id = ?", perish.TypeId).First(&t)
+		perish.Type = &t
 		out.Perishable = PerishablePost{
 			Id:       strconv.Itoa(int(perish.ID)),
 			Type:     perish.Type.Name,
-			Date:     perish.Date.String(),
+			Date:     perish.Date.Format("2006-01-02"),
 			Count:    strconv.Itoa(perish.Count),
 			Location: perish.Location,
 		}
@@ -191,7 +207,8 @@ func addTypePostHandler(w http.ResponseWriter, r *http.Request) {
 
 func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	date, _ := time.Parse("", r.FormValue("date"))
+	logrus.Info(r.FormValue("date"))
+	date, _ := time.Parse("2006-01-02", r.FormValue("date"))
 	count, _ := strconv.Atoi(r.FormValue("count"))
 	// submit id via submit button value
 	var p Perishable
@@ -200,7 +217,8 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 		db.Where("name = ?", r.FormValue("type")).First(&t)
 		p = Perishable{
 			Model:    gorm.Model{},
-			Type:     t,
+			Type:     &t,
+			TypeId:   int(t.ID),
 			Date:     date,
 			Count:    count,
 			Location: r.FormValue("location"),
@@ -210,7 +228,11 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 		p.Count = count
 		p.Location = r.FormValue("location")
 	}
-	db.Save(&p)
+	if p.Count > 0 {
+		db.Save(&p)
+	} else {
+		db.Delete(&p)
+	}
 
 	if r.FormValue("submit") == "add" {
 		http.Redirect(w, r, "/addPerish", http.StatusFound)

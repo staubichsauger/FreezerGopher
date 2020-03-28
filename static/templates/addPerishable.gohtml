@@ -73,7 +73,12 @@
                             <tr>
                                 <td><label for="type">Type:</label></td>
                                 <td>
-                                <select id="type" name="type">
+                                    {{if (ne .Perishable.Id "-1")}}
+                                        <select id="type" name="type" disabled>
+                                    {{else}}
+                                        <select id="type" name="type">
+                                    {{end}}
+
                                     {{range .Types}}
                                         {{if (eq $.Perishable.Type .)}}
                                             <option selected value="{{.}}">{{.}}</option>
