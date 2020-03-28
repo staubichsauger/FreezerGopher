@@ -39,18 +39,18 @@
             </button>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="/">
+            <a class="nav-link" href="{{.UrlPrefix}}/">
                 <i class="fas fa-fw fa-tachometer-alt"></i>
                 <span>Overview</span></a>
         </li>
         <li class="nav-item active">
-            <a class="nav-link" href="/addPerish">
+            <a class="nav-link" href="{{.UrlPrefix}}/addPerish">
                 <i class="fas fa-fw fa-plus"></i>
                 <span>Add</span>
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="/manageType">
+            <a class="nav-link" href="{{.UrlPrefix}}/manageType">
                 <i class="fas fa-fw fa-table"></i>
                 <span>Manage Types</span></a>
         </li>
@@ -67,7 +67,7 @@
                     Add/Update Perishable
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="/addPerishPost">
+                    <form method="POST" action="{{.UrlPrefix}}/addPerishPost">
                         <table border="2px solid black" cellpadding="2px">
 
                             <tr>
