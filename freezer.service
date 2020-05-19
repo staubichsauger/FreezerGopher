@@ -1,0 +1,13 @@
+[Unit]
+Description=FreezerGopher
+
+[Service]
+User=freezer
+Group=freezer
+Environment="FREEZER_PREFIX=freezer"
+WorkingDirectory=/home/freezer/FreezerGopher/
+ExecStart=/home/freezer/FreezerGopher/main
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
