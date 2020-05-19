@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/sirupsen/logrus"
@@ -83,7 +82,7 @@ func main() {
 	logrus.Infof("Starting with urlPrefix: %v", urlPrefix)
 
 	db.Exec("PRAGMA foreign_keys = ON")
-	db.LogMode(true)
+	//db.LogMode(true)
 	/*db.Exec(`CREATE TABLE IF NOT EXISTS "perishable_types" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"name" varchar(255),"is_fresh" bool,"additional_time" integer,"time_unit" varchar(255) );
 	CREATE INDEX idx_perishable_types_deleted_at ON "perishable_types"(deleted_at) ;
 	CREATE TABLE IF NOT EXISTS "perishables" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"date" datetime,"count" integer,"location" varchar(255),perishable_types_id integer NOT NULL,FOREIGN KEY(perishable_types_id) REFERENCES perishable_types(id));
@@ -119,7 +118,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	//db.Lock()
 	db.Find(&perishables)
 	var perishablesDisplay []PerishableDisplay
-	fmt.Printf("Perishables retrieved: %v", perishables)
+	//fmt.Printf("Perishables retrieved: %v", perishables)
 
 	for idx, p := range perishables {
 		var t PerishableType
@@ -299,7 +298,7 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 		p.Comment = r.FormValue("comment")
 		db.Save(&p)
 	}
-	fmt.Println("Perishable: %v", p)
+	//fmt.Println("Perishable: %v", p)
 	if p.Count <= 0 {
 		db.Delete(&p)
 	}
