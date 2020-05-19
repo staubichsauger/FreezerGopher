@@ -16,3 +16,4 @@
 .idea
 out/
 food.db
+tmp/

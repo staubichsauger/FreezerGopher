@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/sirupsen/logrus"
@@ -16,7 +17,7 @@ import (
 type Perishable struct {
 	gorm.Model
 	Type     *PerishableType //`gorm:"foreignkey:perishable_types_id"`
-	TypeId   int			`sql:"type:integer REFERENCES perishable_types(id)"`
+	TypeId   int             `sql:"type:integer REFERENCES perishable_types(id)"`
 	Date     time.Time
 	Count    int
 	Location string
@@ -24,9 +25,10 @@ type Perishable struct {
 }
 
 type PerishablePost struct {
-	Id 		 string
+	Id       string
 	Type     string
 	Date     string
+	OrigDate string
 	Count    string
 	Location string
 	Comment  string
@@ -48,10 +50,9 @@ type PerishableTypePost struct {
 }
 
 var (
-	tpl *template.Template
-	db  *gorm.DB
+	tpl       *template.Template
+	db        *gorm.DB
 	urlPrefix string
-
 )
 
 func init() {
@@ -82,27 +83,31 @@ func main() {
 	logrus.Infof("Starting with urlPrefix: %v", urlPrefix)
 
 	db.Exec("PRAGMA foreign_keys = ON")
-	//db.LogMode(true)
+	db.LogMode(true)
 	/*db.Exec(`CREATE TABLE IF NOT EXISTS "perishable_types" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"name" varchar(255),"is_fresh" bool,"additional_time" integer,"time_unit" varchar(255) );
-				 CREATE INDEX idx_perishable_types_deleted_at ON "perishable_types"(deleted_at) ;
-				 CREATE TABLE IF NOT EXISTS "perishables" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"date" datetime,"count" integer,"location" varchar(255),perishable_types_id integer NOT NULL,FOREIGN KEY(perishable_types_id) REFERENCES perishable_types(id));
-				 CREATE INDEX idx_perishables_deleted_at ON "perishables"(deleted_at) ;`)*/
+	CREATE INDEX idx_perishable_types_deleted_at ON "perishable_types"(deleted_at) ;
+	CREATE TABLE IF NOT EXISTS "perishables" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"date" datetime,"count" integer,"location" varchar(255),perishable_types_id integer NOT NULL,FOREIGN KEY(perishable_types_id) REFERENCES perishable_types(id));
+	CREATE INDEX idx_perishables_deleted_at ON "perishables"(deleted_at) ;`)*/
 	db.AutoMigrate(&PerishableType{}, &Perishable{})
 
 	vendor := http.FileServer(http.Dir("static/vendor/"))
-	http.Handle(urlPrefix + "/vendor/", http.StripPrefix(urlPrefix + "/vendor/", vendor))
+	http.Handle(urlPrefix+"/vendor/", http.StripPrefix(urlPrefix+"/vendor/", vendor))
 
-	http.HandleFunc(urlPrefix + "/", indexHandler)
-	http.HandleFunc(urlPrefix + "/addType", addTypeHandler)
-	http.HandleFunc(urlPrefix + "/addPerish", addPerishableHandler)
-	http.HandleFunc(urlPrefix + "/addTypePost", addTypePostHandler)
-	http.HandleFunc(urlPrefix + "/addPerishPost", addPerishablePostHandler)
-	http.HandleFunc(urlPrefix + "/manageType", manageTypeHandler)
+	http.HandleFunc(urlPrefix+"/", indexHandler)
+	http.HandleFunc(urlPrefix+"/addType", addTypeHandler)
+	http.HandleFunc(urlPrefix+"/addPerish", addPerishableHandler)
+	http.HandleFunc(urlPrefix+"/addTypePost", addTypePostHandler)
+	http.HandleFunc(urlPrefix+"/addPerishPost", addPerishablePostHandler)
+	http.HandleFunc(urlPrefix+"/manageType", manageTypeHandler)
 
 	http.ListenAndServe(":8181", nil)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	type PerishableDisplay struct {
+		Perish   Perishable
+		OrigDate time.Time
+	}
 	var perishables []Perishable
 	out := struct {
 		P         []PerishablePost
@@ -113,6 +118,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	//db.Lock()
 	db.Find(&perishables)
+	var perishablesDisplay []PerishableDisplay
+	fmt.Printf("Perishables retrieved: %v", perishables)
 
 	for idx, p := range perishables {
 		var t PerishableType
@@ -127,21 +134,26 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		case "months":
 			addedTime = time.Hour * 24 * time.Duration(t.AdditionalTime) * 30
 		}
+		var pt PerishableDisplay
+		pt.OrigDate = p.Date
 		perishables[idx].Date = p.Date.Add(addedTime)
+		pt.Perish = perishables[idx]
+		perishablesDisplay = append(perishablesDisplay, pt)
 	}
 
-	sort.Slice(perishables, func(i, j int) bool {
-		return perishables[i].Date.Before(perishables[j].Date)
+	sort.Slice(perishablesDisplay, func(i, j int) bool {
+		return perishablesDisplay[i].Perish.Date.Before(perishablesDisplay[j].Perish.Date)
 	})
 
-	for _, p := range perishables {
+	for _, p := range perishablesDisplay {
 		out.P = append(out.P, PerishablePost{
-			Id:				strconv.Itoa(int(p.ID)),
-			Type:			p.Type.Name,
-			Date:			p.Date.Format("2006-01-02"),
-			Count:			strconv.Itoa(p.Count),
-			Location:		p.Location,
-			Comment:		p.Comment,
+			Id:       strconv.Itoa(int(p.Perish.ID)),
+			Type:     p.Perish.Type.Name,
+			Date:     p.Perish.Date.Format("2006-01-02"),
+			OrigDate: p.OrigDate.Format("2006-01-02"),
+			Count:    strconv.Itoa(p.Perish.Count),
+			Location: p.Perish.Location,
+			Comment:  p.Perish.Comment,
 		})
 	}
 
@@ -151,10 +163,10 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func manageTypeHandler(w http.ResponseWriter, r *http.Request) {
 	var perishableTypes []PerishableType
-	out := struct{
-		P []PerishableTypePost
+	out := struct {
+		P         []PerishableTypePost
 		UrlPrefix string
-	} {
+	}{
 		UrlPrefix: urlPrefix,
 	}
 	//db.Lock()
@@ -173,16 +185,16 @@ func manageTypeHandler(w http.ResponseWriter, r *http.Request) {
 
 func addTypeHandler(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	out := struct{
-		P PerishableTypePost
+	out := struct {
+		P         PerishableTypePost
 		UrlPrefix string
 	}{
 		P: PerishableTypePost{
-				Name:           r.FormValue("name"),
-				IsFresh:        r.FormValue("isFresh"),
-				AdditionalTime: r.FormValue("addedTime"),
-				TimeUnit:       r.FormValue("timeUnit"),
-			},
+			Name:           r.FormValue("name"),
+			IsFresh:        r.FormValue("isFresh"),
+			AdditionalTime: r.FormValue("addedTime"),
+			TimeUnit:       r.FormValue("timeUnit"),
+		},
 		UrlPrefix: urlPrefix,
 	}
 	tpl.ExecuteTemplate(w, "add.gohtml", out)
@@ -195,8 +207,8 @@ func addPerishableHandler(w http.ResponseWriter, r *http.Request) {
 
 	out := struct {
 		Perishable PerishablePost
-		Types 		[]string
-		UrlPrefix   string
+		Types      []string
+		UrlPrefix  string
 	}{
 		UrlPrefix: urlPrefix,
 	}
@@ -221,7 +233,7 @@ func addPerishableHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		out.Perishable = PerishablePost{
-			Id: 	  "-1",
+			Id: "-1",
 		}
 	}
 
@@ -269,7 +281,7 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 	// submit id via submit button value
 	var p Perishable
 	var t PerishableType
-	if db.Where("id = ?", r.FormValue("submit")).First(&p).RecordNotFound() {
+	if db.Where("id = ?", r.FormValue("submit")).First(&p).RowsAffected == 0 {
 		db.Where("name = ?", r.FormValue("type")).First(&t)
 		p = Perishable{
 			Model:    gorm.Model{},
@@ -280,14 +292,15 @@ func addPerishablePostHandler(w http.ResponseWriter, r *http.Request) {
 			Location: r.FormValue("location"),
 			Comment:  r.FormValue("comment"),
 		}
+		db.Save(&p)
 	} else {
 		p.Count = count
 		p.Location = r.FormValue("location")
 		p.Comment = r.FormValue("comment")
-	}
-	if p.Count > 0 {
 		db.Save(&p)
-	} else {
+	}
+	fmt.Println("Perishable: %v", p)
+	if p.Count <= 0 {
 		db.Delete(&p)
 	}
 
