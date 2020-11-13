@@ -54,15 +54,6 @@ var (
 	urlPrefix string
 )
 
-func init() {
-	var err error
-	tpl = template.Must(template.ParseGlob("static/templates/*.gohtml"))
-	db, err = gorm.Open("sqlite3", "food.db")
-	if err != nil {
-		logrus.Panicf("Unable to open db: %v", err)
-	}
-}
-
 func main() {
 	defer db.Close()
 
@@ -80,6 +71,20 @@ func main() {
 	}
 
 	logrus.Infof("Starting with urlPrefix: %v", urlPrefix)
+
+	dbPath, found := os.LookupEnv("DB_PATH")
+	if !found {
+		dbPath = ""
+	} else if found && !strings.HasSuffix(dbPath, "/") {
+		dbPath = dbPath + "/"
+	}
+
+	var err error
+	tpl = template.Must(template.ParseGlob("static/templates/*.gohtml"))
+	db, err = gorm.Open("sqlite3", dbPath + "food.db")
+	if err != nil {
+		logrus.Panicf("Unable to open db: %v", err)
+	}
 
 	db.Exec("PRAGMA foreign_keys = ON")
 	//db.LogMode(true)

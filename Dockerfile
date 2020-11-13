@@ -4,23 +4,27 @@ FROM golang:buster AS build
 RUN apt-get update \
  && apt-get install build-essential sqlite3 -y
 
-WORKDIR /gopherize
+WORKDIR /gopheries
 COPY . .
 
 RUN go test ./... \
  && go vet -v ./...
-RUN go build -o gopherize.bin .
+RUN go build -o gopheries.bin .
 
 
-# STAGE 3: Final image
-FROM scratch
+# STAGE 2: Final image
+FROM debian:stable-slim
 
-WORKDIR /gopherize
-COPY --from=build /gopherize/gopherize.bin .
+WORKDIR /gopheries/static
+ADD static .
+
+WORKDIR /gopheries
+COPY --from=build /gopheries/gopheries.bin .
 
 EXPOSE 8181
+VOLUME /data
 
-RUN chown -R 1000:1000 /gopherize
+RUN chown -R 1000:1000 /gopheries && chmod +x gopheries.bin
 
 USER 1000
-ENTRYPOINT "./gopherize.bin"
+ENTRYPOINT "./gopheries.bin"
