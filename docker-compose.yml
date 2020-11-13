@@ -29,6 +29,8 @@ services:
   gopheries:
     image: "gopheries:latest"
     container_name: gopheries
+    environment:
+      - DB_PATH=/data
     restart: always
     volumes:
       - /var/data/gopheries:/data:consistent
