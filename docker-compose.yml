@@ -39,3 +39,5 @@ services:
       - "traefik.http.routers.gopheries.rule=(Host(`<your domain>`))"
       - "traefik.http.routers.gopheries.entrypoints=websecure"
       - "traefik.http.routers.gopheries.tls.certresolver=myresolver"
+      - "traefik.http.middlewares.auth.basicauth.users=<basic auth user>" #generate using: "echo $(htpasswd -nb user password) | sed -e s/\\$/\\$\\$/g"
+      - "traefik.http.routers.gopheries.middlewares=auth@docker
