@@ -1,0 +1,39 @@
+version: '3.3'
+services:
+
+services:
+
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # uncomment for testing
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=<your email associated with the domain>"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/data/letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+  gopheries:
+    image: "gopheries:latest"
+    container_name: gopheries
+    restart: always
+    volumes:
+      - /var/data/gopheries:/data:consistent
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gopheries.rule=(Host(`<your domain>`))"
+      - "traefik.http.routers.gopheries.entrypoints=websecure"
+      - "traefik.http.routers.gopheries.tls.certresolver=myresolver"
